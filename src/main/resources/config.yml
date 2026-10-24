@@ -1,0 +1,18 @@
+# Hermes API-Server (in ~/.hermes/.env: API_SERVER_ENABLED=true und API_SERVER_KEY setzen)
+base-url: http://127.0.0.1:8642/v1
+api-key: change-me-local-dev
+
+# Modellname; ohne passenden 'provider' nutzt Hermes seinen Gateway-Default
+model: hermes-agent
+
+# Timeout pro Anfrage in Sekunden
+timeout-seconds: 300
+
+# Maximale Antwortlänge im Chat
+max-chars: 1500
+
+# true: Antwort an alle Spieler, false: nur an den Fragenden
+broadcast: false
+
+# Präfix der Hermes-Session-ID (mc-<uuid>)
+session-prefix: mc-
