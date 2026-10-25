@@ -21,7 +21,11 @@ public final class ChatText {
             return lines;
         }
         if (maxChars > 0 && body.length() > maxChars) {
-            body = body.substring(0, maxChars).stripTrailing() + TRUNCATED_MARKER;
+            int cut = maxChars;
+            if (Character.isHighSurrogate(body.charAt(cut - 1))) {
+                cut--;
+            }
+            body = body.substring(0, cut).stripTrailing() + TRUNCATED_MARKER;
         }
         for (String line : body.split("\r?\n")) {
             String stripped = line.strip();

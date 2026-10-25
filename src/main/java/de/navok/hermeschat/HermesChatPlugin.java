@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -17,7 +16,8 @@ public final class HermesChatPlugin extends JavaPlugin {
     private HermesClient client;
     private File storeFile;
     private YamlConfiguration store;
-    private final Map<String, String> suffixes = new HashMap<>();
+    private final Map<String, Integer> suffixes = new HashMap<>();
+    private final Map<String, Long> lastAskNanos = new HashMap<>();
     private final Set<String> inFlight = ConcurrentHashMap.newKeySet();
 
     @Override
@@ -35,7 +35,7 @@ public final class HermesChatPlugin extends JavaPlugin {
             return;
         }
         try {
-            client = new HermesClient(baseUrl, apiKey, model, timeoutSeconds);
+            client = new HermesClient(baseUrl, apiKey, model, timeoutSeconds, getLogger());
         } catch (IllegalArgumentException e) {
             getLogger().severe("Ungültige base-url '" + baseUrl + "': " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
@@ -47,7 +47,7 @@ public final class HermesChatPlugin extends JavaPlugin {
         ConfigurationSection stored = store.getConfigurationSection("suffixes");
         if (stored != null) {
             for (String key : stored.getKeys(false)) {
-                suffixes.put(key, stored.getString(key));
+                suffixes.put(key, stored.getInt(key));
             }
         }
 
@@ -63,18 +63,38 @@ public final class HermesChatPlugin extends JavaPlugin {
 
     public String sessionId(String owner) {
         String base = getConfig().getString("session-prefix", "mc-") + owner;
-        String suffix = suffixes.get(owner);
+        Integer suffix = suffixes.get(owner);
         return suffix == null ? base : base + "-" + suffix;
     }
 
     public void resetSession(String owner) {
-        suffixes.put(owner, Integer.toString(ThreadLocalRandom.current().nextInt(0x10000, 0x100000)));
-        store.set("suffixes." + owner, suffixes.get(owner));
+        int next = suffixes.getOrDefault(owner, 0) + 1;
+        suffixes.put(owner, next);
+        store.set("suffixes." + owner, next);
         try {
             store.save(storeFile);
         } catch (IOException e) {
             getLogger().warning("data.yml konnte nicht gespeichert werden: " + e.getMessage());
         }
+    }
+
+    /** Seconds the owner still has to wait, 0 if free. Main thread only. */
+    public long cooldownLeft(String owner) {
+        Long last = lastAskNanos.get(owner);
+        if (last == null) {
+            return 0;
+        }
+        long cooldownNanos = getConfig().getLong("cooldown-seconds", 10) * 1_000_000_000L;
+        long leftNanos = cooldownNanos - (System.nanoTime() - last);
+        return leftNanos <= 0 ? 0 : (leftNanos + 999_999_999L) / 1_000_000_000L;
+    }
+
+    public void markAsked(String owner) {
+        lastAskNanos.put(owner, System.nanoTime());
+    }
+
+    public boolean isBusy(String owner) {
+        return inFlight.contains(owner);
     }
 
     public boolean acquire(String owner) {

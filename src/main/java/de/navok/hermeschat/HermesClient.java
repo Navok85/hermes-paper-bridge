@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 /** Minimal OpenAI-compatible client for the Hermes API server. */
 public final class HermesClient {
@@ -26,13 +27,15 @@ public final class HermesClient {
     private final String apiKey;
     private final String model;
     private final Duration timeout;
+    private final Logger log;
 
-    public HermesClient(String baseUrl, String apiKey, String model, int timeoutSeconds) {
+    public HermesClient(String baseUrl, String apiKey, String model, int timeoutSeconds, Logger log) {
         String base = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.endpoint = URI.create(base + "/chat/completions");
         this.apiKey = apiKey;
         this.model = model;
         this.timeout = Duration.ofSeconds(Math.max(1, timeoutSeconds));
+        this.log = log;
     }
 
     /** Sends one prompt; exactly one of the callbacks runs, on an HTTP worker thread. */
@@ -47,7 +50,8 @@ public final class HermesClient {
                     .POST(HttpRequest.BodyPublishers.ofString(body(prompt), StandardCharsets.UTF_8))
                     .build();
         } catch (RuntimeException e) {
-            onError.accept("Anfrage konnte nicht gebaut werden: " + e.getMessage());
+            log.warning("Anfrage konnte nicht gebaut werden: " + e);
+            onError.accept("Anfrage konnte nicht gebaut werden (Details in der Server-Konsole).");
             return;
         }
 
@@ -58,12 +62,14 @@ public final class HermesClient {
                         return;
                     }
                     if (response.statusCode() != 200) {
-                        onError.accept("HTTP " + response.statusCode() + ": " + snippet(response.body()));
+                        log.warning("Hermes antwortete mit HTTP " + response.statusCode() + ": " + snippet(response.body()));
+                        onError.accept("HTTP " + response.statusCode() + " (Details in der Server-Konsole).");
                         return;
                     }
                     String answer = extractAnswer(response.body());
                     if (answer.isBlank()) {
-                        onError.accept("Hermes hat eine leere Antwort geliefert.");
+                        log.warning("Hermes-Antwort ohne Text: " + snippet(response.body()));
+                        onError.accept("Hermes hat eine leere Antwort geliefert (Details in der Server-Konsole).");
                     } else {
                         onAnswer.accept(answer);
                     }
@@ -84,7 +90,7 @@ public final class HermesClient {
         return root.toString();
     }
 
-    private static String extractAnswer(String json) {
+    static String extractAnswer(String json) {
         try {
             JsonObject root = JsonParser.parseString(json).getAsJsonObject();
             JsonArray choices = root.getAsJsonArray("choices");
@@ -102,7 +108,7 @@ public final class HermesClient {
         }
     }
 
-    private static String describe(Throwable error) {
+    private String describe(Throwable error) {
         Throwable root = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
         if (root instanceof HttpTimeoutException) {
             return "Hermes hat nicht rechtzeitig geantwortet (Timeout).";
@@ -110,8 +116,8 @@ public final class HermesClient {
         if (root instanceof ConnectException) {
             return "Hermes-Gateway nicht erreichbar.";
         }
-        return "Verbindungsfehler: " + root.getClass().getSimpleName()
-                + (root.getMessage() == null ? "" : " – " + root.getMessage());
+        log.warning("Verbindungsfehler zu Hermes: " + root);
+        return "Verbindungsfehler (Details in der Server-Konsole).";
     }
 
     private static String snippet(String body) {

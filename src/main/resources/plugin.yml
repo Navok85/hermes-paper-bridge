@@ -1,5 +1,5 @@
 name: HermesChat
-version: '1.0.0'
+version: '${project.version}'
 main: de.navok.hermeschat.HermesChatPlugin
 api-version: '26.3'
 description: Chat mit deinem Hermes-Agenten direkt aus Minecraft

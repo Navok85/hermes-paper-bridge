@@ -17,8 +17,14 @@ class ChatTextTest {
     void capsLongSingleLine() {
         List<String> lines = ChatText.split("x".repeat(2000), 100);
         assertEquals(1, lines.size());
-        assertTrue(lines.get(0).endsWith(ChatText.TRUNCATED_MARKER));
-        assertTrue(lines.get(0).length() < 130);
+        assertEquals("x".repeat(100) + ChatText.TRUNCATED_MARKER, lines.get(0));
+    }
+
+    @Test
+    void truncationDoesNotSplitSurrogatePair() {
+        String text = "a".repeat(9) + "😀" + "b".repeat(20);
+        String line = ChatText.split(text, 10).get(0);
+        assertEquals("a".repeat(9) + ChatText.TRUNCATED_MARKER, line);
     }
 
     @Test

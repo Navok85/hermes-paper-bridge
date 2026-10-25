@@ -6,7 +6,7 @@
 
   <groupId>de.navok</groupId>
   <artifactId>hermes-chat</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <packaging>jar</packaging>
   <name>HermesChat</name>
   <description>Chat with your Hermes agent from Minecraft</description>
@@ -40,6 +40,21 @@
 
   <build>
     <finalName>hermes-chat-${project.version}</finalName>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>plugin.yml</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <excludes>
+          <exclude>plugin.yml</exclude>
+        </excludes>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
