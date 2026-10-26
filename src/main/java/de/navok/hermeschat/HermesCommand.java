@@ -27,46 +27,46 @@ public final class HermesCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, String @NotNull [] args) {
         if (!(sender instanceof Player) && !(sender instanceof ConsoleCommandSender)) {
-            reply(sender, "Nur Spieler und die Server-Konsole dürfen /" + label + " nutzen.", NamedTextColor.RED);
+            reply(sender, plugin.messages().get("console-only", label), NamedTextColor.RED);
             return true;
         }
         if (!sender.hasPermission("hermes.chat")) {
-            reply(sender, "Keine Berechtigung (hermes.chat).", NamedTextColor.RED);
+            reply(sender, plugin.messages().get("no-permission", "hermes.chat"), NamedTextColor.RED);
             return true;
         }
         if (args.length == 1 && args[0].equalsIgnoreCase("reset")) {
             if (!sender.hasPermission("hermes.reset")) {
-                reply(sender, "Keine Berechtigung (hermes.reset).", NamedTextColor.RED);
+                reply(sender, plugin.messages().get("no-permission", "hermes.reset"), NamedTextColor.RED);
                 return true;
             }
             if (plugin.isBusy(owner(sender))) {
-                reply(sender, "Ich warte noch auf die vorherige Antwort.", NamedTextColor.YELLOW);
+                reply(sender, plugin.messages().get("busy"), NamedTextColor.YELLOW);
                 return true;
             }
             plugin.resetSession(owner(sender));
-            reply(sender, "Neue Konversation gestartet.", NamedTextColor.GRAY);
+            reply(sender, plugin.messages().get("reset-done"), NamedTextColor.GRAY);
             return true;
         }
         if (args.length == 0) {
-            reply(sender, "Nutzung: /" + label + " <frage>  |  /" + label + " reset", NamedTextColor.GRAY);
+            reply(sender, plugin.messages().get("usage", label, label), NamedTextColor.GRAY);
             return true;
         }
 
         String owner = owner(sender);
         if (!plugin.acquire(owner)) {
-            reply(sender, "Ich warte noch auf die vorherige Antwort.", NamedTextColor.YELLOW);
+            reply(sender, plugin.messages().get("busy"), NamedTextColor.YELLOW);
             return true;
         }
         long wait = plugin.cooldownLeft(owner);
         if (wait > 0) {
             plugin.release(owner);
-            reply(sender, "Bitte noch " + wait + " s warten.", NamedTextColor.YELLOW);
+            reply(sender, plugin.messages().get("cooldown", wait), NamedTextColor.YELLOW);
             return true;
         }
         plugin.markAsked(owner);
 
         String prompt = String.join(" ", args);
-        reply(sender, "denkt nach …", NamedTextColor.GRAY);
+        reply(sender, plugin.messages().get("thinking"), NamedTextColor.GRAY);
         try {
             plugin.client().ask(plugin.sessionId(owner), prompt,
                     answer -> {
@@ -80,7 +80,7 @@ public final class HermesCommand implements CommandExecutor, TabCompleter {
                     });
         } catch (RuntimeException e) {
             plugin.release(owner);
-            reply(sender, "Anfrage fehlgeschlagen: " + e.getClass().getSimpleName(), NamedTextColor.RED);
+            reply(sender, plugin.messages().get("request-failed", e.getClass().getSimpleName()), NamedTextColor.RED);
         }
         return true;
     }
@@ -97,9 +97,10 @@ public final class HermesCommand implements CommandExecutor, TabCompleter {
 
     private void deliver(CommandSender sender, String answer) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            List<String> lines = ChatText.split(answer, plugin.getConfig().getInt("max-chars", 1500));
+            List<String> lines = ChatText.split(answer, plugin.getConfig().getInt("max-chars", 1500),
+                    plugin.messages().get("truncated"));
             if (lines.isEmpty()) {
-                reply(sender, "(leere Antwort)", NamedTextColor.GRAY);
+                reply(sender, plugin.messages().get("empty-answer"), NamedTextColor.GRAY);
                 return;
             }
             if (plugin.getConfig().getBoolean("broadcast", false) && sender instanceof Player) {

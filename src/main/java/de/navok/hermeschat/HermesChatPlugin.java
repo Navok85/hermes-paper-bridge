@@ -3,6 +3,7 @@ package de.navok.hermeschat;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,6 +17,7 @@ public final class HermesChatPlugin extends JavaPlugin {
     private HermesClient client;
     private File storeFile;
     private YamlConfiguration store;
+    private Messages messages;
     private final Map<String, Integer> suffixes = new HashMap<>();
     private final Map<String, Long> lastAskNanos = new HashMap<>();
     private final Set<String> inFlight = ConcurrentHashMap.newKeySet();
@@ -24,20 +26,27 @@ public final class HermesChatPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
 
+        String language = getConfig().getString("language", "en").trim().toLowerCase(Locale.ROOT);
+        if (!Messages.supports(language)) {
+            getLogger().warning("Unknown language '" + language + "', using 'en'.");
+            language = "en";
+        }
+        messages = new Messages(this, language);
+
         String baseUrl = getConfig().getString("base-url", "").trim();
         String apiKey = getConfig().getString("api-key", "").trim();
         String model = getConfig().getString("model", "hermes-agent").trim();
         int timeoutSeconds = getConfig().getInt("timeout-seconds", 300);
 
         if (baseUrl.isEmpty() || apiKey.isEmpty()) {
-            getLogger().severe("base-url oder api-key fehlt in plugins/HermesChat/config.yml – Plugin wird deaktiviert.");
+            getLogger().severe(messages.get("config-missing"));
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
         try {
-            client = new HermesClient(baseUrl, apiKey, model, timeoutSeconds, getLogger());
+            client = new HermesClient(baseUrl, apiKey, model, timeoutSeconds, getLogger(), messages);
         } catch (IllegalArgumentException e) {
-            getLogger().severe("Ungültige base-url '" + baseUrl + "': " + e.getMessage());
+            getLogger().severe(messages.get("config-invalid-url", baseUrl, e.getMessage()));
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -53,12 +62,12 @@ public final class HermesChatPlugin extends JavaPlugin {
 
         PluginCommand command = getCommand("hermes");
         if (command == null) {
-            getLogger().severe("Command 'hermes' fehlt in plugin.yml – Plugin wird deaktiviert.");
+            getLogger().severe(messages.get("command-missing"));
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
         command.setExecutor(new HermesCommand(this));
-        getLogger().info("HermesChat aktiv – Gateway: " + baseUrl);
+        getLogger().info(messages.get("enabled", baseUrl));
     }
 
     public String sessionId(String owner) {
@@ -74,7 +83,7 @@ public final class HermesChatPlugin extends JavaPlugin {
         try {
             store.save(storeFile);
         } catch (IOException e) {
-            getLogger().warning("data.yml konnte nicht gespeichert werden: " + e.getMessage());
+            getLogger().warning(messages.get("store-save-failed", e.getMessage()));
         }
     }
 
@@ -107,5 +116,9 @@ public final class HermesChatPlugin extends JavaPlugin {
 
     public HermesClient client() {
         return client;
+    }
+
+    public Messages messages() {
+        return messages;
     }
 }

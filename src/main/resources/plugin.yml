@@ -2,19 +2,19 @@ name: HermesChat
 version: '${project.version}'
 main: de.navok.hermeschat.HermesChatPlugin
 api-version: '26.3'
-description: Chat mit deinem Hermes-Agenten direkt aus Minecraft
+description: Chat with your Hermes agent directly from Minecraft
 author: navok
 
 commands:
   hermes:
-    description: Frage deinen Hermes-Agenten
-    usage: /hermes <frage> | /hermes reset
+    description: Ask your Hermes agent
+    usage: /hermes <question> | /hermes reset
     aliases: [h]
 
 permissions:
   hermes.chat:
-    description: Erlaubt das Senden von Fragen an Hermes
+    description: Allows sending questions to Hermes
     default: op
   hermes.reset:
-    description: Erlaubt das Zurücksetzen der Hermes-Konversation
+    description: Allows resetting the Hermes conversation
     default: op

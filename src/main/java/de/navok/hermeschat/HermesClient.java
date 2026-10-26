@@ -28,14 +28,17 @@ public final class HermesClient {
     private final String model;
     private final Duration timeout;
     private final Logger log;
+    private final Messages messages;
 
-    public HermesClient(String baseUrl, String apiKey, String model, int timeoutSeconds, Logger log) {
+    public HermesClient(String baseUrl, String apiKey, String model, int timeoutSeconds, Logger log,
+                        Messages messages) {
         String base = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.endpoint = URI.create(base + "/chat/completions");
         this.apiKey = apiKey;
         this.model = model;
         this.timeout = Duration.ofSeconds(Math.max(1, timeoutSeconds));
         this.log = log;
+        this.messages = messages;
     }
 
     /** Sends one prompt; exactly one of the callbacks runs, on an HTTP worker thread. */
@@ -50,8 +53,8 @@ public final class HermesClient {
                     .POST(HttpRequest.BodyPublishers.ofString(body(prompt), StandardCharsets.UTF_8))
                     .build();
         } catch (RuntimeException e) {
-            log.warning("Anfrage konnte nicht gebaut werden: " + e);
-            onError.accept("Anfrage konnte nicht gebaut werden (Details in der Server-Konsole).");
+            log.warning(messages.get("log-request-build", e));
+            onError.accept(messages.get("error-request-build"));
             return;
         }
 
@@ -62,14 +65,14 @@ public final class HermesClient {
                         return;
                     }
                     if (response.statusCode() != 200) {
-                        log.warning("Hermes antwortete mit HTTP " + response.statusCode() + ": " + snippet(response.body()));
-                        onError.accept("HTTP " + response.statusCode() + " (Details in der Server-Konsole).");
+                        log.warning(messages.get("log-http-status", response.statusCode(), snippet(response.body())));
+                        onError.accept(messages.get("error-http-status", response.statusCode()));
                         return;
                     }
                     String answer = extractAnswer(response.body());
                     if (answer.isBlank()) {
-                        log.warning("Hermes-Antwort ohne Text: " + snippet(response.body()));
-                        onError.accept("Hermes hat eine leere Antwort geliefert (Details in der Server-Konsole).");
+                        log.warning(messages.get("log-empty-answer", snippet(response.body())));
+                        onError.accept(messages.get("error-empty-answer"));
                     } else {
                         onAnswer.accept(answer);
                     }
@@ -111,13 +114,13 @@ public final class HermesClient {
     private String describe(Throwable error) {
         Throwable root = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
         if (root instanceof HttpTimeoutException) {
-            return "Hermes hat nicht rechtzeitig geantwortet (Timeout).";
+            return messages.get("error-timeout");
         }
         if (root instanceof ConnectException) {
-            return "Hermes-Gateway nicht erreichbar.";
+            return messages.get("error-gateway-unreachable");
         }
-        log.warning("Verbindungsfehler zu Hermes: " + root);
-        return "Verbindungsfehler (Details in der Server-Konsole).";
+        log.warning(messages.get("log-connection", root));
+        return messages.get("error-connection");
     }
 
     private static String snippet(String body) {

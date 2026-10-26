@@ -6,12 +6,10 @@ import java.util.List;
 /** Turns an agent answer into chat lines. Pure, no server state. */
 public final class ChatText {
 
-    public static final String TRUNCATED_MARKER = " … [gekürzt]";
-
     private ChatText() {
     }
 
-    public static List<String> split(String text, int maxChars) {
+    public static List<String> split(String text, int maxChars, String truncatedMarker) {
         List<String> lines = new ArrayList<>();
         if (text == null) {
             return lines;
@@ -25,7 +23,7 @@ public final class ChatText {
             if (Character.isHighSurrogate(body.charAt(cut - 1))) {
                 cut--;
             }
-            body = body.substring(0, cut).stripTrailing() + TRUNCATED_MARKER;
+            body = body.substring(0, cut).stripTrailing() + truncatedMarker;
         }
         for (String line : body.split("\r?\n")) {
             String stripped = line.strip();
