@@ -1,4 +1,4 @@
-# HermesChat
+# Hermes-Paper-Bridge
 
 Paper-Plugin (Minecraft Java 26.3), mit dem Spieler im Chat mit ihrem
 [Hermes-Agenten](https://hermes-agent.nousresearch.com/) sprechen.

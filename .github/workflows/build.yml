@@ -20,10 +20,17 @@ jobs:
       - name: Build jar
         run: mvn -B package
 
+      - name: Package zip
+        run: |
+          jar=$(basename target/hermes-chat-*.jar)
+          version=${jar#hermes-chat-}
+          version=${version%.jar}
+          cd target && zip -j "hermes-paper-bridge-${version}.zip" "$jar"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: hermes-chat
-          path: target/hermes-chat-*.jar
+          name: hermes-paper-bridge
+          path: target/hermes-paper-bridge-*.zip
           if-no-files-found: error
 
   release:
@@ -35,9 +42,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: hermes-chat
-      - name: Create GitHub release with jar
+          name: hermes-paper-bridge
+      - name: Create GitHub release with zip
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$GITHUB_REF_NAME" hermes-chat-*.jar --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" hermes-paper-bridge-*.zip --generate-notes
