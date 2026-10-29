@@ -18,6 +18,9 @@ max-chars: 1500
 # Minimum delay between two questions per player in seconds (0 = off)
 cooldown-seconds: 10
 
+# While a request runs, remind the asker every N seconds that Hermes is still working (0 = off)
+still-thinking-interval-seconds: 0
+
 # true: answer goes to all players, false: only to the player who asked
 broadcast: false
 

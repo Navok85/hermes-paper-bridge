@@ -11,6 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 public final class HermesCommand implements CommandExecutor, TabCompleter {
@@ -67,18 +68,36 @@ public final class HermesCommand implements CommandExecutor, TabCompleter {
 
         String prompt = String.join(" ", args);
         reply(sender, plugin.messages().get("thinking"), NamedTextColor.GRAY);
+        long intervalTicks = plugin.getConfig().getLong("still-thinking-interval-seconds", 0) * 20L;
+        BukkitTask ticker = intervalTicks > 0
+                ? plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+                    if (sender instanceof Player p && !p.isOnline()) {
+                        return;
+                    }
+                    reply(sender, plugin.messages().get("still-thinking"), NamedTextColor.GRAY);
+                }, intervalTicks, intervalTicks)
+                : null;
         try {
             plugin.client().ask(plugin.sessionId(owner), prompt,
                     answer -> {
+                        if (ticker != null) {
+                            ticker.cancel();
+                        }
                         plugin.release(owner);
                         deliver(sender, answer);
                     },
                     error -> {
+                        if (ticker != null) {
+                            ticker.cancel();
+                        }
                         plugin.release(owner);
                         plugin.getServer().getScheduler().runTask(plugin,
                                 () -> reply(sender, error, NamedTextColor.RED));
                     });
         } catch (RuntimeException e) {
+            if (ticker != null) {
+                ticker.cancel();
+            }
             plugin.release(owner);
             reply(sender, plugin.messages().get("request-failed", e.getClass().getSimpleName()), NamedTextColor.RED);
         }

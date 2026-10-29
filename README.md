@@ -21,10 +21,10 @@ Then start `hermes gateway` – the API server listens on `http://127.0.0.1:8642
 
 ## Installation
 
-1. Copy `target/hermes-chat-1.1.0.jar` into `plugins/` (remove any old `hermes-chat-*.jar` first).
+1. Copy `target/hermes-chat-1.2.0.jar` into `plugins/` (remove any old `hermes-chat-*.jar` first).
 2. Start the server (a restart is preferable to `/reload`).
 3. Edit `plugins/HermesChat/config.yml` – at least `api-key`.
-4. Restart the server: `base-url`, `api-key`, `model`, `timeout-seconds` and `language` are only read when the plugin is enabled. `max-chars`, `cooldown-seconds`, `broadcast` and `session-prefix` apply live – changing the prefix changes all session IDs (the history is then lost).
+4. Restart the server: `base-url`, `api-key`, `model`, `timeout-seconds` and `language` are only read when the plugin is enabled. `max-chars`, `cooldown-seconds`, `still-thinking-interval-seconds`, `broadcast` and `session-prefix` apply live – changing the prefix changes all session IDs (the history is then lost).
 
 ```yaml
 language: en                          # chat and console messages: en or de
@@ -34,6 +34,7 @@ model: hermes-agent                   # without provider, Hermes uses the gatewa
 timeout-seconds: 300
 max-chars: 1500
 cooldown-seconds: 10                  # minimum gap between two questions per player, measured from the start of the question (0 = off)
+still-thinking-interval-seconds: 0    # while a request runs, remind the asker every N seconds that Hermes is still working (0 = off)
 broadcast: false                      # true: all players see the answer
 session-prefix: mc-                   # session ID: mc-<uuid>
 ```
@@ -57,7 +58,7 @@ Only players and the server console can use `/hermes`; the console has its own s
 ```bash
 export JAVA_HOME=~/.local/tools/jdk-25.0.5+8
 ~/.local/tools/apache-maven-3.9.9/bin/mvn package
-# → target/hermes-chat-1.1.0.jar
+# → target/hermes-chat-1.2.0.jar
 ```
 
 ## Limitations

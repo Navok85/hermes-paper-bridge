@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+- `still-thinking-interval-seconds` (default `0` = off): while a request runs, the asker gets a "still thinking" chat line every N seconds, applies live. Existing installs need a manual entry in `plugins/HermesChat/config.yml`.
+
 ## 1.1.0
 
 ### Added
